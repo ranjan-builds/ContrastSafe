@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ContrastSafe - Accessible Palette Generator</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Outfit (Headings) & Plus Jakarta Sans (Body) -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- FontAwesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+      }
+      h1,
+      h2,
+      h3,
+      h4,
+      .font-heading {
+        font-family: "Outfit", sans-serif;
+      }
+
+      .color-transition {
+        transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+          color 0.5s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.5s ease,
+          fill 0.5s ease, stroke 0.5s ease;
+      }
+
+      /* Custom Scrollbar for Dark Mode */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0f172a;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+      }
+
+      .pattern-grid {
+        background-color: #020617; /* Slate 950 */
+        background-image: radial-gradient(#1e293b 1px, transparent 1px);
+        background-size: 32px 32px;
+      }
+
+      .glass-panel {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(51, 65, 85, 0.5);
+      }
+    </style>
+  </head>
+  <body
+    class="pattern-grid text-slate-300 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white"
+  >
+    <!-- Navbar -->
+    <nav
+      class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-900/50"
+          >
+            <i class="fa-solid fa-universal-access text-lg"></i>
+          </div>
+          <h1 class="font-bold text-2xl tracking-tight text-white font-heading">
+            Contrast<span class="text-indigo-500">Safe</span>
+          </h1>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+            <button
+              id="mode-aa"
+              onclick="setStandard('AA')"
+              class="px-4 py-1.5 text-sm font-semibold rounded-md transition-all"
+            >
+              AA (4.5:1)
+            </button>
+            <button
+              id="mode-aaa"
+              onclick="setStandard('AAA')"
+              class="px-4 py-1.5 text-sm font-semibold rounded-md transition-all"
+            >
+              AAA (7:1)
+            </button>
+          </div>
+          <button
+            onclick="generatePalette()"
+            class="bg-white hover:bg-slate-100 text-slate-900 px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+          >
+            <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
+            Generate
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main
+      class="flex-grow flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-4 lg:p-8 gap-8"
+    >
+      <!-- LEFT COLUMN: Palette & Data -->
+      <div class="w-full lg:w-1/3 flex flex-col gap-6">
+        <!-- Palette Swatches -->
+        <div class="glass-panel rounded-2xl shadow-xl overflow-hidden">
+          <div
+            class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50"
+          >
+            <h2 class="font-bold text-slate-100 font-heading tracking-wide">
+              Palette
+            </h2>
+            <span
+              class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-full"
+              id="compliance-badge"
+              >WCAG AA Compliant</span
+            >
+          </div>
+
+          <div class="flex flex-col p-2">
+            <!-- Swatch Item Template (JS fills this) -->
+            <div id="palette-container"></div>
+          </div>
+        </div>
+
+        <!-- Accessibility Report / Matrix -->
+        <div class="glass-panel rounded-2xl shadow-xl p-6">
+          <h2
+            class="font-bold text-slate-100 mb-5 flex items-center gap-2 font-heading"
+          >
+            <i class="fa-solid fa-table-cells text-indigo-500"></i> Contrast
+            Matrix
+          </h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left" id="contrast-matrix">
+              <!-- Matrix generated by JS -->
+            </table>
+          </div>
+          <p class="text-xs text-slate-500 mt-4 text-center font-medium">
+            Ratios calculated against
+            <span class="text-slate-300">Background</span>
+          </p>
+        </div>
+
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
+          <h3 class="text-indigo-400 font-bold text-sm mb-2 font-heading">
+            The Math
+          </h3>
+          <p class="text-slate-400 text-xs leading-relaxed">
+            We algorithmically adjust luminance values. Text and Brand colors
+            are guaranteed to meet the
+            <span id="math-ratio" class="text-white font-mono">4.5:1</span>
+            target ratio against the background color.
+          </p>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Live Preview -->
+      <div class="w-full lg:w-2/3">
+        <div class="sticky top-24">
+          <div class="flex items-center justify-between mb-4 px-1">
+            <h2 class="font-bold text-slate-100 text-xl font-heading">
+              Live Preview
+            </h2>
+            <div
+              class="flex gap-1 text-xs font-semibold bg-slate-800 p-1 rounded-lg border border-slate-700"
+            >
+              <button
+                onclick="setThemeType('light')"
+                class="px-3 py-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              >
+                Light
+              </button>
+              <button
+                onclick="setThemeType('dark')"
+                class="px-3 py-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              >
+                Dark
+              </button>
+              <button
+                onclick="setThemeType('random')"
+                class="px-3 py-1.5 rounded bg-slate-700 text-indigo-400 shadow-sm"
+              >
+                Random
+              </button>
+            </div>
+          </div>
+
+          <!-- Mockup Container -->
+          <div
+            id="preview-frame"
+            class="bg-slate-900 rounded-[2rem] p-3 shadow-2xl border border-slate-700 ring-1 ring-white/5 relative"
+          >
+            <!-- Device Camera Dot -->
+            <div
+              class="absolute top-6 left-1/2 -translate-x-1/2 w-20 h-6 bg-black rounded-full z-20 flex items-center justify-center gap-2"
+            >
+              <div class="w-1.5 h-1.5 rounded-full bg-slate-800"></div>
+              <div class="w-1.5 h-1.5 rounded-full bg-blue-900/50"></div>
+            </div>
+
+            <div
+              id="preview-container"
+              class="color-transition rounded-3xl overflow-hidden relative h-[600px] flex flex-col w-full"
+            >
+              <!-- Mockup Navbar -->
+              <div
+                id="prev-nav"
+                class="color-transition h-16 border-b flex items-center justify-between px-6 shrink-0 pt-2"
+              >
+                <div
+                  class="font-bold text-lg tracking-tight flex items-center gap-2 font-heading"
+                >
+                  <div
+                    id="prev-logo-icon"
+                    class="w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-sm"
+                  >
+                    <i class="fa-solid fa-layer-group"></i>
+                  </div>
+                  <span id="prev-logo-text">Dashboard</span>
+                </div>
+                <div
+                  class="flex gap-6 text-[13px] font-semibold opacity-70 hidden sm:flex"
+                >
+                  <span>Overview</span>
+                  <span>Reports</span>
+                  <span>Settings</span>
+                </div>
+                <div
+                  id="prev-avatar"
+                  class="w-8 h-8 rounded-full opacity-90 shadow-sm border border-white/10"
+                ></div>
+              </div>
+
+              <!-- Mockup Body -->
+              <div class="flex flex-1 overflow-hidden">
+                <!-- Sidebar -->
+                <div
+                  id="prev-sidebar"
+                  class="color-transition w-16 md:w-56 border-r p-4 hidden md:flex flex-col gap-3"
+                >
+                  <div class="h-8 w-full rounded-md opacity-10 mb-6"></div>
+                  <div class="h-2 w-20 rounded-full opacity-20 mb-4 px-2"></div>
+                  <div class="h-8 w-full rounded-md opacity-10"></div>
+                  <div class="h-8 w-full rounded-md opacity-10"></div>
+                  <div class="h-8 w-full rounded-md opacity-10"></div>
+                  <div class="h-8 w-full rounded-md opacity-10"></div>
+                  <div class="mt-auto h-12 w-full rounded-xl opacity-5"></div>
+                </div>
+
+                <!-- Main Content -->
+                <div
+                  class="flex-1 p-4 md:p-8 overflow-y-auto relative custom-preview-scroll"
+                >
+                  <!-- Header -->
+                  <div class="flex justify-between items-end mb-8">
+                    <div>
+                      <h1
+                        id="prev-h1"
+                        class="text-2xl md:text-3xl font-bold mb-2 font-heading"
+                      >
+                        Performance
+                      </h1>
+                      <p
+                        id="prev-subtitle"
+                        class="text-sm font-medium opacity-60"
+                      >
+                        Accessibility metrics overview.
+                      </p>
+                    </div>
+                    <button
+                      id="prev-cta"
+                      class="color-transition px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transform active:scale-95 transition-transform flex items-center gap-2"
+                    >
+                      <i class="fa-solid fa-download"></i> Export
+                    </button>
+                  </div>
+
+                  <!-- Cards Grid -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <!-- Card 1 -->
+                    <div
+                      id="prev-card-1"
+                      class="color-transition p-5 rounded-2xl border shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group"
+                    >
+                      <div
+                        class="absolute top-0 right-0 w-24 h-24 bg-current opacity-[0.03] rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"
+                      ></div>
+                      <div class="flex justify-between items-start z-10">
+                        <span
+                          class="text-[11px] font-bold uppercase tracking-wider opacity-60"
+                          >Total Users</span
+                        >
+                        <i class="fa-solid fa-users opacity-40"></i>
+                      </div>
+                      <div class="text-3xl font-bold z-10 font-heading">
+                        24.5k
+                      </div>
+                      <div
+                        class="text-xs font-bold flex items-center gap-1 opacity-80 z-10"
+                      >
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                        <span>+12.5%</span>
+                      </div>
+                    </div>
+                    <!-- Card 2 -->
+                    <div
+                      id="prev-card-2"
+                      class="color-transition p-5 rounded-2xl border shadow-sm flex flex-col justify-between h-36 relative overflow-hidden"
+                    >
+                      <div class="flex justify-between items-start">
+                        <span
+                          class="text-[11px] font-bold uppercase tracking-wider opacity-60"
+                          >Session</span
+                        >
+                        <i class="fa-solid fa-clock opacity-40"></i>
+                      </div>
+                      <div class="text-3xl font-bold font-heading">4m 32s</div>
+                      <div class="text-xs font-bold opacity-80">Stable</div>
+                    </div>
+                    <!-- Card 3 -->
+                    <div
+                      id="prev-card-3"
+                      class="color-transition p-5 rounded-2xl border shadow-sm flex flex-col justify-between h-36 relative overflow-hidden"
+                    >
+                      <div class="flex justify-between items-start">
+                        <span
+                          class="text-[11px] font-bold uppercase tracking-wider opacity-60"
+                          >Score</span
+                        >
+                        <i class="fa-solid fa-check-circle opacity-40"></i>
+                      </div>
+                      <div class="text-3xl font-bold font-heading">98.2</div>
+                      <div class="text-xs font-bold opacity-80">+1.2%</div>
+                    </div>
+                  </div>
+
+                  <!-- Graph Section -->
+                  <div
+                    id="prev-graph-card"
+                    class="color-transition p-6 rounded-2xl border shadow-sm mb-6"
+                  >
+                    <div class="flex justify-between items-center mb-6">
+                      <h3 class="font-bold text-sm opacity-80">
+                        Traffic Sources
+                      </h3>
+                      <div class="flex gap-2">
+                        <div
+                          class="w-2 h-2 rounded-full bg-current opacity-40"
+                        ></div>
+                        <div
+                          class="w-2 h-2 rounded-full bg-current opacity-20"
+                        ></div>
+                      </div>
+                    </div>
+                    <!-- SVG Graph -->
+                    <svg
+                      viewBox="0 0 400 120"
+                      class="w-full h-auto drop-shadow-sm"
+                    >
+                      <!-- Grid lines -->
+                      <line
+                        x1="0"
+                        y1="120"
+                        x2="400"
+                        y2="120"
+                        stroke="currentColor"
+                        stroke-opacity="0.1"
+                        stroke-width="1"
+                      />
+                      <line
+                        x1="0"
+                        y1="80"
+                        x2="400"
+                        y2="80"
+                        stroke="currentColor"
+                        stroke-opacity="0.1"
+                        stroke-width="1"
+                        stroke-dasharray="4,4"
+                      />
+                      <line
+                        x1="0"
+                        y1="40"
+                        x2="400"
+                        y2="40"
+                        stroke="currentColor"
+                        stroke-opacity="0.1"
+                        stroke-width="1"
+                        stroke-dasharray="4,4"
+                      />
+
+                      <!-- Data Line 1 (Brand) -->
+                      <path
+                        id="graph-line-1"
+                        d="M0,100 Q50,80 100,90 T200,60 T300,40 T400,20"
+                        fill="none"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                      />
+                      <!-- Data Area 1 -->
+                      <path
+                        id="graph-area-1"
+                        d="M0,100 Q50,80 100,90 T200,60 T300,40 T400,20 V120 H0 Z"
+                        fill-opacity="0.1"
+                      />
+
+                      <!-- Data Line 2 (Accent) -->
+                      <path
+                        id="graph-line-2"
+                        d="M0,110 Q50,110 100,100 T200,90 T300,80 T400,60"
+                        fill="none"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-dasharray="6,4"
+                      />
+                    </svg>
+                  </div>
+
+                  <!-- Form Elements -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2 md:col-span-1">
+                      <label
+                        class="block text-[11px] font-bold uppercase tracking-wider mb-2 opacity-70"
+                        >Email Address</label
+                      >
+                      <div
+                        id="prev-input"
+                        class="color-transition h-11 rounded-xl border px-4 flex items-center text-sm font-medium"
+                      >
+                        admin@contrastsafe.com
+                      </div>
+                    </div>
+                    <div class="col-span-2 md:col-span-1">
+                      <label
+                        class="block text-[11px] font-bold uppercase tracking-wider mb-2 opacity-70"
+                        >Permission Role</label
+                      >
+                      <div
+                        id="prev-select"
+                        class="color-transition h-11 rounded-xl border px-4 flex items-center justify-between text-sm font-medium opacity-80"
+                      >
+                        <span>Super Admin</span>
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
